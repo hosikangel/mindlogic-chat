@@ -407,6 +407,7 @@ export default function Home() {
     .recent-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
     .recent-chip.active{font-weight:600}
     .recent-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+    #footer{flex-shrink:0;text-align:center;padding:6px 14px;padding-bottom:calc(6px + var(--safe-bottom));background:var(--bg);border-top:1px solid var(--border);font-size:10px;color:var(--text2);letter-spacing:.3px}
     #messages{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
     #messages::-webkit-scrollbar{display:none}
     .msg{display:flex;align-items:flex-end;gap:8px;animation:fadeUp .25s ease}
@@ -543,6 +544,8 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        <div id="footer">영남대학교 정보혁신처</div>
       </div>
 
       {/* API 키 모달 */}
