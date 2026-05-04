@@ -14,11 +14,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    // MindLogic API 호출
-    // 마인드로직 공식 엔드포인트에 맞게 수정하세요
-    const MINDLOGIC_API_URL = 'https://apis.mindlogic.ai/v1/chat/completions';
+    const MINDLOGIC_API_URL = 'https://factchat-cloud.mindlogic.ai/v1/gateway/chat/completions/';
 
     const requestBody = {
+      model: 'gpt-4o-mini',
       messages: messages,
       ...(personaId && { persona_id: personaId }),
     };
@@ -45,7 +44,6 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // 응답 형식 파싱 (MindLogic 응답 구조에 맞게 조정)
     let reply = '';
     if (data.choices && data.choices[0]) {
       reply = data.choices[0].message?.content || data.choices[0].text || '';
