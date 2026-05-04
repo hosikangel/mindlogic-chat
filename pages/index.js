@@ -14,6 +14,45 @@ export default function Home() {
     let isLoading    = false
     let modelList    = []
 
+    // 최근 사용 모델 (최대 5개)
+    let recentModels = JSON.parse(localStorage.getItem('ml_recent_models') || '[]')
+
+    function saveRecentModel(modelId) {
+      if (!modelId) return
+      recentModels = [modelId, ...recentModels.filter(m => m !== modelId)].slice(0, 5)
+      localStorage.setItem('ml_recent_models', JSON.stringify(recentModels))
+      renderRecentBar()
+    }
+
+    function renderRecentBar() {
+      const bar = document.getElementById('recent-bar')
+      const wrap = document.getElementById('recent-wrap')
+      if (recentModels.length === 0) {
+        wrap.style.display = 'none'
+        return
+      }
+      wrap.style.display = 'block'
+      bar.innerHTML = recentModels.map(id => {
+        const { label, color } = getBadgeStyle(id)
+        const displayName = id.length > 18 ? id.slice(0, 18) + '…' : id
+        const isActive = id === currentModel
+        return `<div class="recent-chip ${isActive ? 'active' : ''}" data-id="${id}"
+          style="${isActive ? `border-color:${color};background:${color}22;color:${color}` : ''}">
+          <span class="recent-dot" style="background:${color}"></span>
+          <span>${displayName}</span>
+        </div>`
+      }).join('')
+      bar.querySelectorAll('.recent-chip').forEach(el => {
+        el.addEventListener('click', () => {
+          currentModel = el.dataset.id
+          updateModelDisplay(currentModel)
+          renderRecentBar()
+          updateSendBtn()
+          appendSystem(`모델이 <strong>${currentModel}</strong>로 변경되었습니다.`)
+        })
+      })
+    }
+
     const msgContainer = document.getElementById('messages')
     const userInput    = document.getElementById('user-input')
     const sendBtn      = document.getElementById('send-btn')
@@ -149,6 +188,7 @@ export default function Home() {
           document.getElementById('model-modal').classList.add('hidden')
           appendSystem(`모델이 <strong>${currentModel}</strong>로 변경되었습니다.`)
           updateSendBtn()
+          saveRecentModel(currentModel)
         })
       })
     }
@@ -170,6 +210,7 @@ export default function Home() {
     }
 
     renderPersonaBar()
+    renderRecentBar()
     updateModelDisplay(currentModel)
 
     // ── 메시지 출력 ────────────────────────────────────────
@@ -359,6 +400,13 @@ export default function Home() {
     #persona-bar::-webkit-scrollbar{display:none}
     .persona-chip{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
     .persona-chip.active{background:rgba(0,51,102,0.4);border-color:#1a5fa8;color:#4a90d9}
+    #recent-wrap{flex-shrink:0;background:var(--bg);border-bottom:1px solid var(--border)}
+    #recent-header{font-size:10px;color:var(--text2);font-weight:600;letter-spacing:.5px;padding:6px 14px 0}
+    #recent-bar{display:flex;gap:6px;padding:5px 14px 8px;overflow-x:auto}
+    #recent-bar::-webkit-scrollbar{display:none}
+    .recent-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
+    .recent-chip.active{font-weight:600}
+    .recent-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
     #messages{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
     #messages::-webkit-scrollbar{display:none}
     .msg{display:flex;align-items:flex-end;gap:8px;animation:fadeUp .25s ease}
@@ -468,6 +516,12 @@ export default function Home() {
         </header>
 
         <div id="persona-bar"></div>
+
+        {/* 최근 사용 모델 */}
+        <div id="recent-wrap" style={{display:'none'}}>
+          <div id="recent-header">최근 사용한 챗봇</div>
+          <div id="recent-bar"></div>
+        </div>
 
         <div id="messages">
           <div className="welcome-msg" id="welcome">
