@@ -1,61 +1,122 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+const BASE = 'https://factchat-cloud.mindlogic.ai';
+
+function resolveEndpoint(model) {
+  const m = model.toLowerCase();
+  if (m.includes('claude'))
+    return { url: `${BASE}/v1/gateway/claude/v1/messages/`, type: 'anthropic' };
+  if (m.startsWith('o1') || m.startsWith('o3') || m.startsWith('o4'))
+    return { url: `${BASE}/v1/gateway/responses/`, type: 'openai_responses' };
+  if (m.includes('gpt') || m.includes('gemini') || m.includes('llama') || m.includes('mistral'))
+    return { url: `${BASE}/v1/gateway/chat/completions/`, type: 'openai' };
+  // 커스텀 모델 — 판별 불가, 폴백 사용
+  return { url: null, type: 'unknown' };
+}
+
+// 엔드포인트 + 요청바디 + 헤더 생성
+function buildRequest(type, model, messages, apiKey) {
+  const commonHeaders = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`,
+    'Accept': 'application/json',
+  };
+
+  if (type === 'anthropic') {
+    const systemMsgs = messages.filter(m => m.role === 'system');
+    const chatMsgs   = messages.filter(m => m.role !== 'system');
+    return {
+      url: `${BASE}/v1/gateway/claude/v1/messages/`,
+      body: {
+        model, max_tokens: 4096, messages: chatMsgs,
+        ...(systemMsgs.length > 0 && { system: systemMsgs.map(m => m.content).join('\n') }),
+      },
+      headers: { ...commonHeaders, 'anthropic-version': '2023-06-01' },
+    };
   }
 
-  const { apiKey, messages, model, ragContext } = req.body;
+  if (type === 'openai_responses') {
+    const lastUser = [...messages].reverse().find(m => m.role === 'user');
+    return {
+      url: `${BASE}/v1/gateway/responses/`,
+      body: { model, input: lastUser?.content || '' },
+      headers: commonHeaders,
+    };
+  }
 
-  if (!apiKey) return res.status(400).json({ error: 'API 키가 없습니다.' });
-  if (!messages || !Array.isArray(messages) || messages.length === 0)
-    return res.status(400).json({ error: '메시지가 없습니다.' });
+  // openai (기본)
+  return {
+    url: `${BASE}/v1/gateway/chat/completions/`,
+    body: { model, messages },
+    headers: commonHeaders,
+  };
+}
+
+// 응답에서 텍스트 추출
+function extractReply(type, data) {
+  if (type === 'anthropic')
+    return data.content?.[0]?.text || '';
+  if (type === 'openai_responses')
+    return data.output?.[0]?.content?.[0]?.text || data.output_text || data.choices?.[0]?.message?.content || '';
+  return data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
+}
+
+// 단일 엔드포인트 시도
+async function tryRequest(type, model, messages, apiKey) {
+  const { url, body, headers } = buildRequest(type, model, messages, apiKey);
+  const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  const data = await response.json();
+  if (!response.ok) {
+    const msg = data.message || data.error || `HTTP ${response.status}`;
+    throw new Error(msg);
+  }
+  return extractReply(type, data);
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST')
+    return res.status(405).json({ error: 'Method not allowed' });
+
+  const { apiKey, messages, model, ragContext } = req.body;
+  if (!apiKey)  return res.status(400).json({ error: 'API 키가 없습니다.' });
+  if (!model)   return res.status(400).json({ error: '모델을 선택해 주세요.' });
+  if (!messages?.length) return res.status(400).json({ error: '메시지가 없습니다.' });
+
+  // RAG 주입
+  let finalMessages = [...messages];
+  if (ragContext?.trim()) {
+    finalMessages = [
+      { role: 'system', content: `아래 참고 문서를 우선 활용해 답변하세요.\n\n---\n${ragContext}\n---` },
+      ...messages,
+    ];
+  }
+
+  const { type } = resolveEndpoint(model);
 
   try {
-    const MINDLOGIC_API_URL = 'https://factchat-cloud.mindlogic.ai/v1/gateway/chat/completions/';
-
-    // RAG 컨텍스트가 있으면 시스템 메시지로 주입
-    let finalMessages = [...messages];
-    if (ragContext && ragContext.trim()) {
-      const systemMsg = {
-        role: 'system',
-        content: `아래는 참고 문서입니다. 사용자 질문에 답변할 때 이 내용을 우선 참고하세요.\n\n---\n${ragContext}\n---`
-      };
-      finalMessages = [systemMsg, ...messages];
+    if (type !== 'unknown') {
+      // 알려진 모델 — 직접 호출
+      const reply = await tryRequest(type, model, finalMessages, apiKey);
+      return res.status(200).json({ reply });
     }
 
-    const requestBody = {
-      model: model || 'gpt-4o-mini',
-      messages: finalMessages,
-    };
+    // ── 커스텀 모델: 자동 폴백 ──────────────────────────────
+    // 1차: OpenAI 호환
+    const FALLBACK_ORDER = ['openai', 'anthropic', 'openai_responses'];
+    let lastError = '';
 
-    const response = await fetch(MINDLOGIC_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMsg = `API 오류 (${response.status})`;
+    for (const fallbackType of FALLBACK_ORDER) {
       try {
-        const errorJson = JSON.parse(errorText);
-        errorMsg = errorJson.message || errorJson.error || errorMsg;
-      } catch (_) {}
-      return res.status(response.status).json({ error: errorMsg });
+        const reply = await tryRequest(fallbackType, model, finalMessages, apiKey);
+        if (reply) return res.status(200).json({ reply, _usedEndpoint: fallbackType });
+      } catch (err) {
+        lastError = err.message;
+        // 다음 엔드포인트로 시도
+        continue;
+      }
     }
 
-    const data = await response.json();
-    let reply = '';
-    if (data.choices && data.choices[0]) {
-      reply = data.choices[0].message?.content || data.choices[0].text || '';
-    } else if (data.message) { reply = data.message; }
-    else if (data.content) { reply = data.content; }
-    else { reply = JSON.stringify(data); }
+    // 모든 폴백 실패
+    return res.status(500).json({ error: `모든 엔드포인트 시도 실패: ${lastError}` });
 
-    return res.status(200).json({ reply });
   } catch (err) {
     console.error('MindLogic API error:', err);
     return res.status(500).json({ error: '서버 오류: ' + err.message });
