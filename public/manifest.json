@@ -1,12 +1,12 @@
 {
-  "name": "MindLogic Chat",
-  "short_name": "MindLogic",
-  "description": "MindLogic AI 채팅 앱",
+  "name": "영남대학교 AI 챗봇",
+  "short_name": "YU 챗봇",
+  "description": "영남대학교 AI 챗봇",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f0f13",
-  "theme_color": "#0f0f13",
+  "background_color": "#003366",
+  "theme_color": "#003366",
   "icons": [
     {
       "src": "/icon-192.png",
