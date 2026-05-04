@@ -519,7 +519,7 @@ export default function Home() {
       <div id="api-modal" className="modal-overlay hidden">
         <div className="modal-sheet">
           <div className="modal-handle"></div>
-          <div className="modal-title">⚙️ API 키 설정</div>
+          <div className="modal-title">⚙️ API키 설정</div>
           <div className="modal-desc">MindLogic API 키를 입력하세요.<br/>저장 후 사용 가능한 모델이 자동으로 불러와집니다.</div>
           <div className="modal-label">API 키</div>
           <input className="modal-input" type="password" id="api-key-input" placeholder="ml_xxxxxxxxxxxx" />
