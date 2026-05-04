@@ -173,12 +173,12 @@ export default function Home() {
       bar.querySelectorAll('.persona-chip').forEach(function(el) {
         el.addEventListener('click', function() {
           currentPersona = PERSONAS.find(function(p) { return p.id === el.dataset.id })
-          renderPersonaBar()
+      
         })
       })
     }
 
-    renderPersonaBar()
+
     renderRecentBar()
     updateModelDisplay(currentModel)
 
@@ -481,8 +481,6 @@ export default function Home() {
           <button className="header-btn" id="model-btn" title="모델 선택">🧠</button>
           <button className="header-btn" id="key-btn"   title="API 키">⚙️</button>
         </header>
-
-        <div id="persona-bar"></div>
 
         <div id="recent-wrap" style={{display:'none'}}>
           <div id="recent-header">최근에 사용된 챗봇</div>
