@@ -57,6 +57,7 @@ function buildRequest(type, model, messages, apiKey, chatbotId) {
   };
 }
 
+
 // 응답에서 텍스트 추출
 function extractReply(type, data) {
   if (type === 'anthropic')
