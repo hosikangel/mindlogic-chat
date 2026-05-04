@@ -4,10 +4,7 @@ import Head from 'next/head'
 export default function Home() {
   useEffect(() => {
     const PERSONAS = [
-      { id: 'default', emoji: '🤖', name: '일반 AI',         chatbotId: null },
-      { id: '39053',   emoji: '🛡️', name: 'YU Shield AI',    chatbotId: '39053' },
-      { id: '39013',   emoji: '📋', name: '규정 안내',        chatbotId: '39013' },
-      { id: '39049',   emoji: '💰', name: '예산편성 안내',    chatbotId: '39049' },
+      { id: 'default', emoji: '🤖', name: '일반 AI', chatbotId: null },
     ]
 
     let apiKey       = localStorage.getItem('ml_api_key') || ''
@@ -404,17 +401,17 @@ export default function Home() {
         <meta name="theme-color" content="#003366" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="YU 챗봇" />
+        <meta name="apple-mobile-web-app-title" content="AI@YU" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-        <title>영남대학교 AI 챗봇</title>
+        <title>AI@YU</title>
         <style>{css}</style>
       </Head>
 
       <div id="app">
         <header>
-          <div className="logo-mark"><span>YU</span><span className="logo-sub">AI챗봇</span></div>
+          <div className="logo-mark"><span>AI</span><span className="logo-sub">@YU</span></div>
           <div className="header-info">
             <div className="header-title-row">
               <span className="header-title" id="model-label">모델 선택</span>
@@ -422,7 +419,7 @@ export default function Home() {
             </div>
             <div className="header-sub">
               <span className="status-dot"></span>
-              <span>영남대학교 AI 챗봇</span>
+              <span>AI@YU</span>
             </div>
           </div>
           <button className="header-btn" id="model-btn" title="모델 선택">🧠</button>
@@ -433,10 +430,10 @@ export default function Home() {
 
         <div id="messages">
           <div className="welcome-msg" id="welcome">
-            <div className="welcome-logo">YU</div>
+            <div className="welcome-logo"><span>AI</span><span className="logo-sub" style={{fontSize:'14px'}}>@YU</span></div>
             <div className="welcome-univ">Yeungnam University</div>
-            <div className="welcome-title">영남대학교 AI 챗봇</div>
-            <div className="welcome-sub">🧠 모델을 선택하고 영남대 챗봇으로<br/>궁금한 것을 무엇이든 물어보세요.</div>
+            <div className="welcome-title">AI@YU</div>
+            <div className="welcome-sub">🧠 모델을 선택하고 영남대 AI와<br/>궁금한 것을 무엇이든 물어보세요.</div>
           </div>
         </div>
 
