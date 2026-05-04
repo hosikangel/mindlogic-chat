@@ -255,7 +255,39 @@ export default function Home() {
     })
     document.getElementById('refresh-model-btn').addEventListener('click', fetchModels)
 
-    userInput.addEventListener('input', () => {
+    // ── 서비스 워커 등록 ───────────────────────────────────
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
+
+    // ── PWA 설치 프롬프트 ──────────────────────────────────
+    let deferredPrompt = null
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault()
+      deferredPrompt = e
+      // 이미 설치된 경우 표시 안 함
+      const banner = document.getElementById('install-banner')
+      if (banner) banner.style.display = 'flex'
+    })
+
+    window.addEventListener('appinstalled', () => {
+      const banner = document.getElementById('install-banner')
+      if (banner) banner.style.display = 'none'
+      deferredPrompt = null
+    })
+
+    document.getElementById('install-btn').addEventListener('click', async () => {
+      if (!deferredPrompt) return
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      deferredPrompt = null
+      document.getElementById('install-banner').style.display = 'none'
+    })
+
+    document.getElementById('install-close').addEventListener('click', () => {
+      document.getElementById('install-banner').style.display = 'none'
+    })
       userInput.style.height = 'auto'
       userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px'
       updateSendBtn()
@@ -391,6 +423,15 @@ export default function Home() {
     .welcome-univ{font-size:11px;color:#c8a951;font-weight:600;letter-spacing:1.5px;text-transform:uppercase}
     .welcome-title{font-size:17px;font-weight:700}
     .welcome-sub{font-size:13px;color:var(--text2);max-width:260px;line-height:1.7}
+    #install-banner{display:none;position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg2);border-top:1px solid rgba(26,95,168,0.4);padding:14px 16px;padding-bottom:calc(14px + var(--safe-bottom));align-items:center;gap:12px;z-index:200;box-shadow:0 -4px 24px rgba(0,0,0,0.4)}
+    .install-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#003366,#1a5fa8);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;font-family:'Space Mono',monospace;font-weight:700;color:#fff;gap:1px}
+    .install-icon span:first-child{font-size:12px}
+    .install-icon .i-sub{font-size:7px;color:#c8a951;font-family:'Noto Sans KR',sans-serif}
+    .install-info{flex:1;min-width:0}
+    .install-title{font-size:13px;font-weight:700;color:var(--text)}
+    .install-desc{font-size:11px;color:var(--text2);margin-top:2px}
+    .install-btn{background:linear-gradient(135deg,#003366,#1a5fa8);border:none;border-radius:10px;padding:8px 16px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Noto Sans KR',sans-serif;flex-shrink:0}
+    .install-close{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1}
   `
 
   return (
@@ -480,6 +521,20 @@ export default function Home() {
           <div className="model-list" id="model-list"></div>
           <button className="modal-secondary" id="close-model-btn">닫기</button>
         </div>
+      </div>
+
+      {/* 앱 설치 배너 */}
+      <div id="install-banner">
+        <div className="install-icon">
+          <span>AI</span>
+          <span className="i-sub">@YU</span>
+        </div>
+        <div className="install-info">
+          <div className="install-title">AI@YU 앱 설치</div>
+          <div className="install-desc">홈 화면에 추가해서 앱처럼 사용하세요</div>
+        </div>
+        <button className="install-btn" id="install-btn">설치</button>
+        <button className="install-close" id="install-close">×</button>
       </div>
     </>
   )
