@@ -314,7 +314,9 @@ export default function Home() {
     html,body{height:100%;height:100dvh;background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:15px;line-height:1.6;overflow:hidden}
     #app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:480px;margin:0 auto}
     header{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0}
-    .logo-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#003366,#1a5fa8);display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:#fff;letter-spacing:-0.5px;flex-shrink:0}
+    .logo-mark{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,#003366,#1a5fa8);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;color:#fff;flex-shrink:0;gap:1px}
+    .logo-mark span:first-child{font-size:13px;letter-spacing:-0.5px;line-height:1}
+    .logo-sub{font-size:7px;letter-spacing:0.3px;opacity:0.9;font-family:'Noto Sans KR',sans-serif;line-height:1}
     .header-info{flex:1;min-width:0}
     .header-title-row{display:flex;align-items:center;gap:6px}
     .header-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
@@ -412,7 +414,7 @@ export default function Home() {
 
       <div id="app">
         <header>
-          <div className="logo-mark">YU</div>
+          <div className="logo-mark"><span>YU</span><span className="logo-sub">AI챗봇</span></div>
           <div className="header-info">
             <div className="header-title-row">
               <span className="header-title" id="model-label">모델 선택</span>
