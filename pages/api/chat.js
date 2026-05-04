@@ -13,7 +13,7 @@ function resolveEndpoint(model) {
 }
 
 // 엔드포인트 + 요청바디 + 헤더 생성
-function buildRequest(type, model, messages, apiKey) {
+function buildRequest(type, model, messages, apiKey, chatbotId) {
   const commonHeaders = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${apiKey}`,
@@ -28,6 +28,7 @@ function buildRequest(type, model, messages, apiKey) {
       body: {
         model, max_tokens: 4096, messages: chatMsgs,
         ...(systemMsgs.length > 0 && { system: systemMsgs.map(m => m.content).join('\n') }),
+        ...(chatbotId && { chatbot_id: chatbotId }),
       },
       headers: { ...commonHeaders, 'anthropic-version': '2023-06-01' },
     };
@@ -37,7 +38,10 @@ function buildRequest(type, model, messages, apiKey) {
     const lastUser = [...messages].reverse().find(m => m.role === 'user');
     return {
       url: `${BASE}/v1/gateway/responses/`,
-      body: { model, input: lastUser?.content || '' },
+      body: {
+        model, input: lastUser?.content || '',
+        ...(chatbotId && { chatbot_id: chatbotId }),
+      },
       headers: commonHeaders,
     };
   }
@@ -45,7 +49,10 @@ function buildRequest(type, model, messages, apiKey) {
   // openai (기본)
   return {
     url: `${BASE}/v1/gateway/chat/completions/`,
-    body: { model, messages },
+    body: {
+      model, messages,
+      ...(chatbotId && { chatbot_id: chatbotId }),
+    },
     headers: commonHeaders,
   };
 }
@@ -60,8 +67,8 @@ function extractReply(type, data) {
 }
 
 // 단일 엔드포인트 시도
-async function tryRequest(type, model, messages, apiKey) {
-  const { url, body, headers } = buildRequest(type, model, messages, apiKey);
+async function tryRequest(type, model, messages, apiKey, chatbotId) {
+  const { url, body, headers } = buildRequest(type, model, messages, apiKey, chatbotId);
   const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
   const data = await response.json();
   if (!response.ok) {
@@ -75,7 +82,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST')
     return res.status(405).json({ error: 'Method not allowed' });
 
-  const { apiKey, messages, model, ragContext } = req.body;
+  const { apiKey, messages, model, ragContext, chatbotId } = req.body;
   if (!apiKey)  return res.status(400).json({ error: 'API 키가 없습니다.' });
   if (!model)   return res.status(400).json({ error: '모델을 선택해 주세요.' });
   if (!messages?.length) return res.status(400).json({ error: '메시지가 없습니다.' });
@@ -94,22 +101,20 @@ export default async function handler(req, res) {
   try {
     if (type !== 'unknown') {
       // 알려진 모델 — 직접 호출
-      const reply = await tryRequest(type, model, finalMessages, apiKey);
+      const reply = await tryRequest(type, model, finalMessages, apiKey, chatbotId);
       return res.status(200).json({ reply });
     }
 
     // ── 커스텀 모델: 자동 폴백 ──────────────────────────────
-    // 1차: OpenAI 호환
     const FALLBACK_ORDER = ['openai', 'anthropic', 'openai_responses'];
     let lastError = '';
 
     for (const fallbackType of FALLBACK_ORDER) {
       try {
-        const reply = await tryRequest(fallbackType, model, finalMessages, apiKey);
+        const reply = await tryRequest(fallbackType, model, finalMessages, apiKey, chatbotId);
         if (reply) return res.status(200).json({ reply, _usedEndpoint: fallbackType });
       } catch (err) {
         lastError = err.message;
-        // 다음 엔드포인트로 시도
         continue;
       }
     }
